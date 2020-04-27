@@ -1,0 +1,375 @@
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Timeline demo</title>
+  <!-- Improve mobile performance, https://forums.adobe.com/thread/2426358 -->
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0">
+  <script defer src="https://use.fontawesome.com/releases/v5.8.2/js/all.js"></script>
+  <script type="text/javascript" src="timeline.js"></script>
+  <style>
+  .button {
+    background-color: #212121;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    margin: 4px 2px;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .button:hover {
+    background-color: #424242;
+    box-shadow: 0 0 2px rgba(0,0,0,.12), 0 2px 2px rgba(0,0,0,.2);
+  }
+  </style>
+</head>
+
+<body>
+  <div style="padding: 10px; cursor: pointer;">
+    <canvas id="mytimeline"></canvas>
+  </div>
+
+  <script type="text/javascript">
+
+// document.body.onkeyup = function(e) {
+// switch(e.keyCode) {
+//   case 37:
+//   case 67: irisStop(); break;
+// }
+// };
+    function EventRecord(/*event_id, cam_id, date, image, video,*/ video_offset/*, duration, has_audio, has_video, audio_level, video_level, is_finished*/) {
+      // this.event_id = event_id;
+      // this.cam_id = cam_id;
+      // this.date = date;
+      // this.image = image;
+      // this.video = video;
+      this.video_offset = video_offset;
+      // this.duration = duration;
+      // this.has_audio = has_audio;
+      // this.has_video = has_video;
+      // this.audio_level = audio_level;
+      // this.video_level = video_level;
+      // this.is_finished = is_finished;
+    }
+
+    function getTimestampFromRecord(record) {
+      return record.object.video_offset + record.timestampMsec;
+    }
+
+    function selectUpperTimeline() {
+      timeline.setCurrentTimeline(timeline.getCurrentTimeline() - 1);
+      timeline.draw();
+    }
+
+    function selectBottomTimeline() {
+      timeline.setCurrentTimeline(timeline.getCurrentTimeline() + 1);
+      timeline.draw();
+    }
+
+    function gotoNextRecord(animation) {
+      var record = timeline.getNextMajorRecord(timeline.getCurrentTimeline());
+      if (record != null) {
+        var timestamp = getTimestampFromRecord(record);
+        timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
+        if (animation)
+          timeline.setCurrentWithAnimation(record.timestampMsec);
+        else
+          timeline.setCurrent(record.timestampMsec);
+        timeline.draw();
+      }
+    }
+
+    function gotoLastMajor1Record() {
+      var records = timeline.getMajor1Records(timeline.getCurrentTimeline());
+      // At least one event exists
+      if (records.length > 0) {
+        var record = records[0];
+        var timestamp = getTimestampFromRecord(record);
+        timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
+        timeline.setCurrentWithAnimation(record.timestampMsec);
+        timeline.draw();
+      } else {
+        // No events found. Show last video recording.
+        records = timeline.getBackgroundRecords();
+        if (records.length > 0) {
+          var record = records[0];
+          // 30 sec before video finished.
+          var timestamp = record.timestampMsec + Math.max(record.durationMsec - 30000, 0);
+          timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
+          timeline.setCurrentWithAnimation(record.timestampMsec);
+          timeline.draw();
+        }
+      }
+    }
+
+    // var liveTimerId;
+    function goLive() {
+      // clearInterval(liveTimerId);
+      timeline.setCurrentWithAnimation(new Date().getTime());
+      timeline.draw();
+      // liveTimerId = setInterval(function() {
+      //   timeline.setCurrentWithAnimation(new Date().getTime());
+      //   timeline.draw();
+      // }, 1000);
+    }
+
+    function gotoPrevRecord(animation) {
+      var record = timeline.getPrevMajorRecord(timeline.getCurrentTimeline());
+      if (record != null) {
+          var timestamp = getTimestampFromRecord(record);
+          timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
+          if (animation)
+              timeline.setCurrentWithAnimation(record.timestampMsec);
+          else
+              timeline.setCurrent(record.timestampMsec);
+          timeline.draw();
+      }
+    }
+
+    function fitToContainerWidth(canvas) {
+      canvas.style.width = '100%';
+      canvas.height = 250;
+      canvas.width = canvas.offsetWidth;
+    }
+
+    function resizeCanvas() {
+      console.log('resizeCanvas()');
+      fitToContainerWidth(canvas);
+      timeline.updateResize();
+      timeline.draw();
+    }
+
+    var scrolling = false;
+    function mouseUp(e) {
+      if (scrolling)
+        scrolling = false;
+      else
+        timeline.onSingleTapUp(e);
+    }
+
+    function mouseMove(e) {
+      console.log("move: " + e.buttons);
+      if (e.buttons == 1) {
+        scrolling = true;
+        timeline.onScroll(e.movementX);
+      }
+    }
+
+    document.body.onkeydown = function(e) {
+      if (e.repeat) return;
+      console.log("Key: " + e.keyCode);
+      switch(e.keyCode) {
+        case 173: // firefox
+        case 189: timeline.increaseInterval(); break; // -
+        case 61: // firefox
+        case 187: timeline.decreaseInterval(); break; // +
+        case 37: gotoPrevRecord(true); break; // Left
+        case 39: gotoNextRecord(true); break; // Right
+        case 81: selectUpperTimeline(); break; // Q
+        case 65: selectBottomTimeline(); break; // A
+      }
+    };
+
+    var options = {
+        // timelines: 1,
+        timelines: 5,
+        timelineNames: ["Cam 1", "Back Yard", "Front door", "Pool", "Garage"],
+        colorTimeBackground: "#c62828",
+        colorTimeText: "#ffffff",
+        colorTimelineSelected: "#00838F",
+        colorBackground: "#212121",
+        colorRectNoData: "#2b2b2b",
+        colorRectBackground: "#2e484b",
+        colorRectMajor1: "#1de9b6",
+        colorRectMajor2: "#ff6d00",
+        colorMajor1Selected: "#ffca28",
+        colorMajor2Selected: "#be8e00",
+        colorDigits: "#cccccc",
+    };
+    var timeline = new Timeline(options);
+    var canvas = document.getElementById("mytimeline");
+    timeline.setCanvas(canvas);
+    <!-- [timestampMsec, durationMsec] -->
+    time = new Date().getTime();
+
+    // Timeline 1
+    var major1RecordsTl1 = [
+      new TimeRecord(time - 5000, 1000, new EventRecord(0)),
+      new TimeRecord(time - 30000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 300000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 1800000, 100000, new EventRecord(0)),
+      new TimeRecord(time - 3600000, 70000, new EventRecord(0)),
+      new TimeRecord(time - 360000000, 150000, new EventRecord(0)),
+      new TimeRecord(time - 500000000, 1500000, new EventRecord(0)),
+    ];
+    var major2RecordsTl1 = [
+      new TimeRecord(time - 500, 500, new EventRecord(0)),
+      // new TimeRecord(time - 30000, 20000, new EventRecord(0)),
+    ];
+    var backgroundRecordsTl1 = [
+      new TimeRecord(time - 500000, 500000, new EventRecord(0)),
+      new TimeRecord(time - 1000000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 2500000, 1000000, new EventRecord(0)),
+    ];
+    timeline.setMajor1Records(0, major1RecordsTl1);
+    timeline.setMajor2Records(0, major2RecordsTl1);
+    timeline.setBackgroundRecords(0, backgroundRecordsTl1);
+
+    // Timeline 2
+    var major1RecordsTl2 = [
+      new TimeRecord(time - 2000, 2000, new EventRecord(0)),
+      new TimeRecord(time - 20000, 10000, new EventRecord(0)),
+      new TimeRecord(time - 40000, 10000, new EventRecord(0)),
+      new TimeRecord(time - 100000, 50000, new EventRecord(0)),
+      new TimeRecord(time - 1800000, 50000, new EventRecord(0)),
+    ];
+    var major2RecordsTl2 = [
+      new TimeRecord(time - 1500, 1500, new EventRecord(0)),
+      new TimeRecord(time - 20000, 1000, new EventRecord(0)),
+    ];
+    var backgroundRecordsTl2 = [
+      new TimeRecord(time - 200000, 200000, new EventRecord(0)),
+      new TimeRecord(time - 700000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 2000000, 500000, new EventRecord(0)),
+    ];
+    timeline.setMajor1Records(1, major1RecordsTl2);
+    timeline.setMajor2Records(1, major2RecordsTl2);
+    timeline.setBackgroundRecords(1, backgroundRecordsTl2);
+
+    // Timeline 3
+    var major1RecordsTl3 = [
+      new TimeRecord(time - 9000, 1000, new EventRecord(0)),
+      new TimeRecord(time - 20000, 2000, new EventRecord(0)),
+      new TimeRecord(time - 50000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 100000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 400000, 50000, new EventRecord(0)),
+      new TimeRecord(time - 1400000, 100000, new EventRecord(0)),
+    ];
+    var major2RecordsTl3 = [
+      // new TimeRecord(time - 500, 500, new EventRecord(0)),
+    ];
+    var backgroundRecordsTl3 = [
+      new TimeRecord(time - 200000, 200000, new EventRecord(0)),
+      new TimeRecord(time - 500000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 500000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 700000, 150000, new EventRecord(0)),
+      new TimeRecord(time - 1500000, 400000, new EventRecord(0)),
+    ];
+    timeline.setMajor1Records(2, major1RecordsTl3);
+    timeline.setMajor2Records(2, major2RecordsTl3);
+    timeline.setBackgroundRecords(2, backgroundRecordsTl3);
+
+    var requestMoreBackgroundDataCalled = false;
+    var requestMoreMajor1DataCalled = false;
+    function requestMoreBackgroundData(timelineIndex) {
+      console.log("requestMoreBackgroundData(timelineIndex=" + timelineIndex + ")");
+      if (!requestMoreBackgroundDataCalled) {
+        backgroundRecordsTl1.push(new TimeRecord(time - 3000000, 1000000, new EventRecord(0)));
+        backgroundRecordsTl1.push(new TimeRecord(time - 4500000, 1000000, new EventRecord(0)));
+        backgroundRecordsTl1.push(new TimeRecord(time - 9000000, 5000000, new EventRecord(0)));
+        requestMoreBackgroundDataCalled = true;
+        timeline.draw();
+      }
+    }
+    function requestMoreMajor1DataCallback(timelineIndex) {
+      console.log("requestMoreMajor1DataCallback(timelineIndex=" + timelineIndex + ")");
+      if (!requestMoreMajor1DataCalled) {
+        major1RecordsTl1.push(new TimeRecord(time - 400000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 600000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 800000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 1000000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 1200000000, 150000, new EventRecord(0)));
+        requestMoreMajor1DataCalled = true;
+        timeline.draw();
+      }
+    }
+    var liveTimerId = null;
+    var liveTimerStopped = 0;
+    function timeSelectedCallback(timelineIndex, timestampMsec, record) {
+      console.log("timeSelectedCallback(timelineIndex=" + timelineIndex + ", timestampMsec=" + timestampMsec + ")");
+    }
+    function liveCallback(timelineIndex, started) {
+      // console.log("liveCallback(timelineIndex=" + timelineIndex + ", started=" + started + ")");
+      if (started && liveTimerId == null) {
+        console.log("Starting live timer...");
+        liveTimerId = setInterval(function() {
+          timeline.setCurrentWithAnimation(new Date().getTime());
+          timeline.draw();
+        }, 500);
+      } else if (!started) {
+        console.log("Stopping live timer...");
+        clearInterval(liveTimerId);
+        liveTimerId = null;
+      }
+    }
+    timeline.setRequestMoreBackgroundDataCallback(requestMoreBackgroundData);
+    timeline.setRequestMoreMajor1DataCallback(requestMoreMajor1DataCallback);
+    timeline.setTimeSelectedCallback(timeSelectedCallback);
+    timeline.setLiveCallback(liveCallback);
+
+    resizeCanvas();
+
+    // Events
+    window.addEventListener('resize', resizeCanvas, false);
+    var firstTouch = 0;
+    canvas.addEventListener('touchstart', function(event) {
+      if (event.targetTouches.length == 1) {
+        firstTouch = event.targetTouches[0].pageX;
+      }
+    }, false);
+
+    canvas.addEventListener('touchmove', function(event) {
+      if (event.targetTouches.length == 1) {
+        var touchDelta = event.targetTouches[0].pageX - firstTouch;
+        timeline.onScroll(touchDelta);
+        firstTouch = event.targetTouches[0].pageX;
+      }
+    }, false);
+
+    canvas.onmouseup = mouseUp;
+    canvas.onmousemove = mouseMove;
+
+  </script>
+
+  <div style="padding:20px;text-align: center;">
+    <button class="button" onclick="gotoPrevRecord(true);">
+      <span style="font-size: 18px; color: white;">
+        <i class="fas fa-backward"></i>
+      </span>
+    </button>
+    <button class="button" onclick="gotoNextRecord(true);">
+      <span style="font-size: 18px; color: white;">
+        <i class="fas fa-forward"></i>
+      </span>
+    </button>
+    <button class="button" onclick="gotoLastMajor1Record();" style="margin-left:30px;">
+      <span style="font-size: 18px; color: white;">
+        <i class="fas fa-fast-forward"></i>
+      </span>
+    </button>
+    <button class="button" onclick="goLive();" style="margin-left:30px;">
+      <span style="font-size: 18px; color: white;">
+        LIVE
+      </span>
+    </button>
+
+    <button class="button" onclick="timeline.increaseInterval();" style="margin-left:30px;">
+      <span style="font-size: 18px; color: white;">
+        <i class="fas fa-minus"></i>
+      </span>
+    </button>
+    <button class="button" onclick="timeline.decreaseInterval();">
+      <span style="font-size: 18px; color: white;">
+        <i class="fas fa-plus"></i>
+      </span>
+    </button>
+  </div>
+  <div style="padding:10px;font:15px sans-serif">
+    <p>Keys <b>+</b>/<b>-</b> to increase/decrease intervals.<br/>
+    Keys <b>left</b>/<b>right</b> to select previous/next records.<br/>
+    Keys <b>Q</b>/<b>A</b> to change timelines.</p>
+  </div>
+
+</body>
+</html>
