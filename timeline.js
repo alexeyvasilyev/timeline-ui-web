@@ -1,17 +1,19 @@
 // function TimeSeries(options) {
 //     this.clear();
 // }
-function Rect(left, top, right, bottom) {
+function Rect(left, top, right, bottom, color /*optional*/) {
     this.left = left;
     this.top = top;
     this.right = right;
     this.bottom = bottom;
+    this.color = color; // can be undefined
 }
 
-function TimeRecord(timestampMsec, durationMsec, object) {
+function TimeRecord(timestampMsec, durationMsec, object, color /*optional*/) {
     this.timestampMsec = timestampMsec;
     this.durationMsec = durationMsec;
     this.object = object;
+    this.color = color; // can be undefined
 }
 
 const INTERVAL_MIN_1   =            60 * 1000; //  1 min
@@ -414,7 +416,8 @@ Timeline.prototype.updateRects = function(timelineIndex) {
           Math.max((record.timestampMsec - minValue) * msecInPixels, 0), // left
           offsetMajor1 + top, // top
           Math.min((record.timestampMsec - minValue + record.durationMsec) * msecInPixels, width), // right
-          height - offsetMajor1 * 2); // bottom
+          height - offsetMajor1 * 2, // bottom
+          record.color);
 
       // Draw at least 1px width
       if (rect.right - rect.left < 1)
@@ -454,7 +457,8 @@ Timeline.prototype.updateRects = function(timelineIndex) {
           Math.max((record.timestampMsec - minValue) * msecInPixels, 0), // left
           offsetMajor2 + top, // top
           Math.min((record.timestampMsec - minValue + record.durationMsec) * msecInPixels, width), // right
-          height - offsetMajor2 * 2); // bottom
+          height - offsetMajor2 * 2, // bottom
+          record.color);
 
       if (this.rectMajor2Selected == null &&
           timelineIndex == this.timelineSelected &&
@@ -488,7 +492,8 @@ Timeline.prototype.updateRects = function(timelineIndex) {
           Math.max((record.timestampMsec - minValue) * msecInPixels, 0), // left
           offsetBackground + top, // top
           Math.min((record.timestampMsec - minValue + record.durationMsec) * msecInPixels, width), // right
-          height - offsetBackground * 2); // bottom
+          height - offsetBackground * 2, // bottom
+          record.color);
 
       if (rect.right - rect.left < 1)
          rect.right += 1;
@@ -831,8 +836,8 @@ Timeline.prototype.draw = function() {
         this.rectNoData[i].bottom);
 
     // Draw rects background
-    context.fillStyle = this.options.colorRectBackground;
     for (rect of this.rectsBackground[i]) {
+      context.fillStyle = (rect.color == undefined) ? this.options.colorRectBackground : rect.color;
       context.fillRect(
           rect.left,
           rect.top,
@@ -841,8 +846,8 @@ Timeline.prototype.draw = function() {
     }
 
     // Draw rects major1
-    context.fillStyle = this.options.colorRectMajor1;
     for (rect of this.rectsMajor1[i]) {
+      context.fillStyle = (rect.color == undefined) ? this.options.colorRectMajor1 : rect.color;
       context.fillRect(
           rect.left,
           rect.top,
@@ -861,8 +866,8 @@ Timeline.prototype.draw = function() {
     }
 
     // Draw rects major2
-    context.fillStyle = this.options.colorRectMajor2;
     for (rect of this.rectsMajor2[i]) {
+      context.fillStyle = (rect.color == undefined) ? this.options.colorRectMajor2 : rect.color;
       context.fillRect(
           rect.left,
           rect.top,

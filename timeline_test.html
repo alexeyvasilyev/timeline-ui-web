@@ -27,310 +27,8 @@
 
 <body>
   <div style="padding: 10px; cursor: pointer;">
-    <canvas id="mytimeline"></canvas>
+    <canvas id="mytimeline1"></canvas>
   </div>
-
-  <script type="text/javascript">
-
-// document.body.onkeyup = function(e) {
-// switch(e.keyCode) {
-//   case 37:
-//   case 67: irisStop(); break;
-// }
-// };
-    function EventRecord(/*event_id, cam_id, date, image, video,*/ video_offset/*, duration, has_audio, has_video, audio_level, video_level, is_finished*/) {
-      // this.event_id = event_id;
-      // this.cam_id = cam_id;
-      // this.date = date;
-      // this.image = image;
-      // this.video = video;
-      this.video_offset = video_offset;
-      // this.duration = duration;
-      // this.has_audio = has_audio;
-      // this.has_video = has_video;
-      // this.audio_level = audio_level;
-      // this.video_level = video_level;
-      // this.is_finished = is_finished;
-    }
-
-    function getTimestampFromRecord(record) {
-      return record.object.video_offset + record.timestampMsec;
-    }
-
-    function selectUpperTimeline() {
-      timeline.setCurrentTimeline(timeline.getCurrentTimeline() - 1);
-      timeline.draw();
-    }
-
-    function selectBottomTimeline() {
-      timeline.setCurrentTimeline(timeline.getCurrentTimeline() + 1);
-      timeline.draw();
-    }
-
-    function gotoNextRecord(animation) {
-      var record = timeline.getNextMajorRecord(timeline.getCurrentTimeline());
-      if (record != null) {
-        var timestamp = getTimestampFromRecord(record);
-        timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
-        if (animation)
-          timeline.setCurrentWithAnimation(record.timestampMsec);
-        else
-          timeline.setCurrent(record.timestampMsec);
-        timeline.draw();
-      }
-    }
-
-    function gotoLastMajor1Record() {
-      var records = timeline.getMajor1Records(timeline.getCurrentTimeline());
-      // At least one event exists
-      if (records.length > 0) {
-        var record = records[0];
-        var timestamp = getTimestampFromRecord(record);
-        timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
-        timeline.setCurrentWithAnimation(record.timestampMsec);
-        timeline.draw();
-      } else {
-        // No events found. Show last video recording.
-        records = timeline.getBackgroundRecords();
-        if (records.length > 0) {
-          var record = records[0];
-          // 30 sec before video finished.
-          var timestamp = record.timestampMsec + Math.max(record.durationMsec - 30000, 0);
-          timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
-          timeline.setCurrentWithAnimation(record.timestampMsec);
-          timeline.draw();
-        }
-      }
-    }
-
-    // var liveTimerId;
-    function goLive() {
-      // clearInterval(liveTimerId);
-      timeline.setCurrentWithAnimation(new Date().getTime());
-      timeline.draw();
-      // liveTimerId = setInterval(function() {
-      //   timeline.setCurrentWithAnimation(new Date().getTime());
-      //   timeline.draw();
-      // }, 1000);
-    }
-
-    function gotoPrevRecord(animation) {
-      var record = timeline.getPrevMajorRecord(timeline.getCurrentTimeline());
-      if (record != null) {
-          var timestamp = getTimestampFromRecord(record);
-          timeSelectedCallback(timeline.getCurrentTimeline(), timestamp, record);
-          if (animation)
-              timeline.setCurrentWithAnimation(record.timestampMsec);
-          else
-              timeline.setCurrent(record.timestampMsec);
-          timeline.draw();
-      }
-    }
-
-    function fitToContainerWidth(canvas) {
-      canvas.style.width = '100%';
-      canvas.height = 250;
-      canvas.width = canvas.offsetWidth;
-    }
-
-    function resizeCanvas() {
-      console.log('resizeCanvas()');
-      fitToContainerWidth(canvas);
-      timeline.updateResize();
-      timeline.draw();
-    }
-
-    var scrolling = false;
-    function mouseUp(e) {
-      if (scrolling)
-        scrolling = false;
-      else
-        timeline.onSingleTapUp(e);
-    }
-
-    function mouseMove(e) {
-      console.log("move: " + e.buttons);
-      if (e.buttons == 1) {
-        scrolling = true;
-        timeline.onScroll(e.movementX);
-      }
-    }
-
-    document.body.onkeydown = function(e) {
-      if (e.repeat) return;
-      console.log("Key: " + e.keyCode);
-      switch(e.keyCode) {
-        case 173: // firefox
-        case 189: timeline.increaseInterval(); break; // -
-        case 61: // firefox
-        case 187: timeline.decreaseInterval(); break; // +
-        case 37: gotoPrevRecord(true); break; // Left
-        case 39: gotoNextRecord(true); break; // Right
-        case 81: selectUpperTimeline(); break; // Q
-        case 65: selectBottomTimeline(); break; // A
-      }
-    };
-
-    var options = {
-        // timelines: 1,
-        timelines: 5,
-        timelineNames: ["Cam 1", "Back Yard", "Front door", "Pool", "Garage"],
-        colorTimeBackground: "#c62828",
-        colorTimeText: "#ffffff",
-        colorTimelineSelected: "#00838F",
-        colorBackground: "#212121",
-        colorRectNoData: "#2b2b2b",
-        colorRectBackground: "#2e484b",
-        colorRectMajor1: "#1de9b6",
-        colorRectMajor2: "#ff6d00",
-        colorMajor1Selected: "#ffca28",
-        colorMajor2Selected: "#be8e00",
-        colorDigits: "#cccccc",
-    };
-    var timeline = new Timeline(options);
-    var canvas = document.getElementById("mytimeline");
-    timeline.setCanvas(canvas);
-    <!-- [timestampMsec, durationMsec] -->
-    time = new Date().getTime();
-
-    // Timeline 1
-    var major1RecordsTl1 = [
-      new TimeRecord(time - 5000, 1000, new EventRecord(0)),
-      new TimeRecord(time - 30000, 20000, new EventRecord(0)),
-      new TimeRecord(time - 300000, 20000, new EventRecord(0)),
-      new TimeRecord(time - 1800000, 100000, new EventRecord(0)),
-      new TimeRecord(time - 3600000, 70000, new EventRecord(0)),
-      new TimeRecord(time - 360000000, 150000, new EventRecord(0)),
-      new TimeRecord(time - 500000000, 1500000, new EventRecord(0)),
-    ];
-    var major2RecordsTl1 = [
-      new TimeRecord(time - 500, 500, new EventRecord(0)),
-      // new TimeRecord(time - 30000, 20000, new EventRecord(0)),
-    ];
-    var backgroundRecordsTl1 = [
-      new TimeRecord(time - 500000, 500000, new EventRecord(0)),
-      new TimeRecord(time - 1000000, 250000, new EventRecord(0)),
-      new TimeRecord(time - 2500000, 1000000, new EventRecord(0)),
-    ];
-    timeline.setMajor1Records(0, major1RecordsTl1);
-    timeline.setMajor2Records(0, major2RecordsTl1);
-    timeline.setBackgroundRecords(0, backgroundRecordsTl1);
-
-    // Timeline 2
-    var major1RecordsTl2 = [
-      new TimeRecord(time - 2000, 2000, new EventRecord(0)),
-      new TimeRecord(time - 20000, 10000, new EventRecord(0)),
-      new TimeRecord(time - 40000, 10000, new EventRecord(0)),
-      new TimeRecord(time - 100000, 50000, new EventRecord(0)),
-      new TimeRecord(time - 1800000, 50000, new EventRecord(0)),
-    ];
-    var major2RecordsTl2 = [
-      new TimeRecord(time - 1500, 1500, new EventRecord(0)),
-      new TimeRecord(time - 20000, 1000, new EventRecord(0)),
-    ];
-    var backgroundRecordsTl2 = [
-      new TimeRecord(time - 200000, 200000, new EventRecord(0)),
-      new TimeRecord(time - 700000, 250000, new EventRecord(0)),
-      new TimeRecord(time - 2000000, 500000, new EventRecord(0)),
-    ];
-    timeline.setMajor1Records(1, major1RecordsTl2);
-    timeline.setMajor2Records(1, major2RecordsTl2);
-    timeline.setBackgroundRecords(1, backgroundRecordsTl2);
-
-    // Timeline 3
-    var major1RecordsTl3 = [
-      new TimeRecord(time - 9000, 1000, new EventRecord(0)),
-      new TimeRecord(time - 20000, 2000, new EventRecord(0)),
-      new TimeRecord(time - 50000, 20000, new EventRecord(0)),
-      new TimeRecord(time - 100000, 20000, new EventRecord(0)),
-      new TimeRecord(time - 400000, 50000, new EventRecord(0)),
-      new TimeRecord(time - 1400000, 100000, new EventRecord(0)),
-    ];
-    var major2RecordsTl3 = [
-      // new TimeRecord(time - 500, 500, new EventRecord(0)),
-    ];
-    var backgroundRecordsTl3 = [
-      new TimeRecord(time - 200000, 200000, new EventRecord(0)),
-      new TimeRecord(time - 500000, 250000, new EventRecord(0)),
-      new TimeRecord(time - 500000, 250000, new EventRecord(0)),
-      new TimeRecord(time - 700000, 150000, new EventRecord(0)),
-      new TimeRecord(time - 1500000, 400000, new EventRecord(0)),
-    ];
-    timeline.setMajor1Records(2, major1RecordsTl3);
-    timeline.setMajor2Records(2, major2RecordsTl3);
-    timeline.setBackgroundRecords(2, backgroundRecordsTl3);
-
-    var requestMoreBackgroundDataCalled = false;
-    var requestMoreMajor1DataCalled = false;
-    function requestMoreBackgroundData(timelineIndex) {
-      console.log("requestMoreBackgroundData(timelineIndex=" + timelineIndex + ")");
-      if (!requestMoreBackgroundDataCalled) {
-        backgroundRecordsTl1.push(new TimeRecord(time - 3000000, 1000000, new EventRecord(0)));
-        backgroundRecordsTl1.push(new TimeRecord(time - 4500000, 1000000, new EventRecord(0)));
-        backgroundRecordsTl1.push(new TimeRecord(time - 9000000, 5000000, new EventRecord(0)));
-        requestMoreBackgroundDataCalled = true;
-        timeline.draw();
-      }
-    }
-    function requestMoreMajor1DataCallback(timelineIndex) {
-      console.log("requestMoreMajor1DataCallback(timelineIndex=" + timelineIndex + ")");
-      if (!requestMoreMajor1DataCalled) {
-        major1RecordsTl1.push(new TimeRecord(time - 400000000, 150000, new EventRecord(0)));
-        major1RecordsTl1.push(new TimeRecord(time - 600000000, 150000, new EventRecord(0)));
-        major1RecordsTl1.push(new TimeRecord(time - 800000000, 150000, new EventRecord(0)));
-        major1RecordsTl1.push(new TimeRecord(time - 1000000000, 150000, new EventRecord(0)));
-        major1RecordsTl1.push(new TimeRecord(time - 1200000000, 150000, new EventRecord(0)));
-        requestMoreMajor1DataCalled = true;
-        timeline.draw();
-      }
-    }
-    var liveTimerId = null;
-    var liveTimerStopped = 0;
-    function timeSelectedCallback(timelineIndex, timestampMsec, record) {
-      console.log("timeSelectedCallback(timelineIndex=" + timelineIndex + ", timestampMsec=" + timestampMsec + ")");
-    }
-    function liveCallback(timelineIndex, started) {
-      // console.log("liveCallback(timelineIndex=" + timelineIndex + ", started=" + started + ")");
-      if (started && liveTimerId == null) {
-        console.log("Starting live timer...");
-        liveTimerId = setInterval(function() {
-          timeline.setCurrentWithAnimation(new Date().getTime());
-          timeline.draw();
-        }, 500);
-      } else if (!started) {
-        console.log("Stopping live timer...");
-        clearInterval(liveTimerId);
-        liveTimerId = null;
-      }
-    }
-    timeline.setRequestMoreBackgroundDataCallback(requestMoreBackgroundData);
-    timeline.setRequestMoreMajor1DataCallback(requestMoreMajor1DataCallback);
-    timeline.setTimeSelectedCallback(timeSelectedCallback);
-    timeline.setLiveCallback(liveCallback);
-
-    resizeCanvas();
-
-    // Events
-    window.addEventListener('resize', resizeCanvas, false);
-    var firstTouch = 0;
-    canvas.addEventListener('touchstart', function(event) {
-      if (event.targetTouches.length == 1) {
-        firstTouch = event.targetTouches[0].pageX;
-      }
-    }, false);
-
-    canvas.addEventListener('touchmove', function(event) {
-      if (event.targetTouches.length == 1) {
-        var touchDelta = event.targetTouches[0].pageX - firstTouch;
-        timeline.onScroll(touchDelta);
-        firstTouch = event.targetTouches[0].pageX;
-      }
-    }, false);
-
-    canvas.onmouseup = mouseUp;
-    canvas.onmousemove = mouseMove;
-
-  </script>
 
   <div style="padding:20px;text-align: center;">
     <button class="button" onclick="gotoPrevRecord(true);">
@@ -354,22 +52,382 @@
       </span>
     </button>
 
-    <button class="button" onclick="timeline.increaseInterval();" style="margin-left:30px;">
+    <button class="button" onclick="increaseInterval();" style="margin-left:30px;">
       <span style="font-size: 18px; color: white;">
         <i class="fas fa-minus"></i>
       </span>
     </button>
-    <button class="button" onclick="timeline.decreaseInterval();">
+    <button class="button" onclick="decreaseInterval();">
       <span style="font-size: 18px; color: white;">
         <i class="fas fa-plus"></i>
       </span>
     </button>
   </div>
-  <div style="padding:10px;font:15px sans-serif">
+  <div style="padding:10px; margin-bottom:30px; font:15px sans-serif">
     <p>Keys <b>+</b>/<b>-</b> to increase/decrease intervals.<br/>
     Keys <b>left</b>/<b>right</b> to select previous/next records.<br/>
     Keys <b>Q</b>/<b>A</b> to change timelines.</p>
   </div>
+
+  <div style="padding: 10px; cursor: pointer;">
+    <canvas id="mytimeline2"></canvas>
+  </div>
+
+  <script type="text/javascript">
+    function EventRecord(/*event_id, cam_id, date, image, video,*/ video_offset/*, duration, has_audio, has_video, audio_level, video_level, is_finished*/) {
+      // this.event_id = event_id;
+      // this.cam_id = cam_id;
+      // this.date = date;
+      // this.image = image;
+      // this.video = video;
+      this.video_offset = video_offset;
+      // this.duration = duration;
+      // this.has_audio = has_audio;
+      // this.has_video = has_video;
+      // this.audio_level = audio_level;
+      // this.video_level = video_level;
+      // this.is_finished = is_finished;
+    }
+
+    function getTimestampFromRecord(record) {
+      return record.object.video_offset + record.timestampMsec;
+    }
+
+    function selectUpperTimeline() {
+      timeline1.setCurrentTimeline(timeline1.getCurrentTimeline() - 1);
+      timeline1.draw();
+    }
+
+    function selectBottomTimeline() {
+      timeline1.setCurrentTimeline(timeline1.getCurrentTimeline() + 1);
+      timeline1.draw();
+    }
+
+    function gotoNextRecord(animation) {
+      let record = timeline1.getNextMajorRecord(timeline1.getCurrentTimeline());
+      if (record != null) {
+        let timestamp = getTimestampFromRecord(record);
+        timeSelectedCallback(timeline1.getCurrentTimeline(), timestamp, record);
+        if (animation)
+          timeline1.setCurrentWithAnimation(record.timestampMsec);
+        else
+          timeline1.setCurrent(record.timestampMsec);
+        timeline1.draw();
+      }
+    }
+
+    function gotoLastMajor1Record() {
+      let records = timeline1.getMajor1Records(timeline1.getCurrentTimeline());
+      // At least one event exists
+      if (records.length > 0) {
+        let record = records[0];
+        let timestamp = getTimestampFromRecord(record);
+        timeSelectedCallback(timeline1.getCurrentTimeline(), timestamp, record);
+        timeline1.setCurrentWithAnimation(record.timestampMsec);
+        timeline1.draw();
+      } else {
+        // No events found. Show last video recording.
+        records = timeline1.getBackgroundRecords();
+        if (records.length > 0) {
+          let record = records[0];
+          // 30 sec before video finished.
+          let timestamp = record.timestampMsec + Math.max(record.durationMsec - 30000, 0);
+          timeSelectedCallback(timeline1.getCurrentTimeline(), timestamp, record);
+          timeline1.setCurrentWithAnimation(record.timestampMsec);
+          timeline1.draw();
+        }
+      }
+    }
+
+    // let liveTimerId;
+    function goLive() {
+      // clearInterval(liveTimerId);
+      timeline1.setCurrentWithAnimation(new Date().getTime());
+      timeline1.draw();
+      // liveTimerId = setInterval(function() {
+      //   timeline.setCurrentWithAnimation(new Date().getTime());
+      //   timeline.draw();
+      // }, 1000);
+    }
+
+    function increaseInterval() {
+      timeline1.increaseInterval();
+    }
+
+    function decreaseInterval() {
+      timeline1.decreaseInterval();
+    }
+
+    function gotoPrevRecord(animation) {
+      let record = timeline1.getPrevMajorRecord(timeline1.getCurrentTimeline());
+      if (record != null) {
+          let timestamp = getTimestampFromRecord(record);
+          timeSelectedCallback(timeline1.getCurrentTimeline(), timestamp, record);
+          if (animation)
+              timeline1.setCurrentWithAnimation(record.timestampMsec);
+          else
+              timeline1.setCurrent(record.timestampMsec);
+          timeline1.draw();
+      }
+    }
+
+    function fitToContainerWidth(canvas) {
+      canvas1.style.width = '100%';
+      canvas1.height = 250;
+      canvas1.width = canvas1.offsetWidth;
+      canvas2.style.width = '100%';
+      canvas2.height = 100;
+      canvas2.width = canvas2.offsetWidth;
+    }
+
+    function resizeCanvas() {
+      console.log('resizeCanvas()');
+      fitToContainerWidth(canvas1);
+      timeline1.updateResize();
+      timeline1.draw();
+      timeline2.updateResize();
+      timeline2.draw();
+    }
+
+    let scrolling = false;
+    function mouseUp(e) {
+      if (scrolling)
+        scrolling = false;
+      else
+        timeline1.onSingleTapUp(e);
+    }
+
+    function mouseMove(e) {
+      // console.log("move: " + e.buttons);
+      if (e.buttons == 1) {
+        scrolling = true;
+        timeline1.onScroll(e.movementX);
+      }
+    }
+
+    document.body.onkeydown = function(e) {
+      if (e.repeat) return;
+      console.log("Key: " + e.keyCode);
+      switch(e.keyCode) {
+        case 173: // firefox
+        case 189: timeline1.increaseInterval(); break; // -
+        case 61: // firefox
+        case 187: timeline1.decreaseInterval(); break; // +
+        case 37: gotoPrevRecord(true); break; // Left
+        case 39: gotoNextRecord(true); break; // Right
+        case 81: selectUpperTimeline(); break; // Q
+        case 65: selectBottomTimeline(); break; // A
+      }
+    };
+
+    const options1 = {
+        timelines: 4,
+        timelineNames: ["Cam 1", "Back Yard", "Front door", "Empty"],
+        colorTimeBackground: "#c62828",
+        colorTimeText: "#ffffff",
+        colorTimelineSelected: "#00838F",
+        colorBackground: "#212121",
+        colorRectNoData: "#2b2b2b",
+        colorRectBackground: "#2e484b",
+        colorRectMajor1: "#1de9b6",
+        colorRectMajor2: "#ff6d00",
+        colorMajor1Selected: "#ffca28",
+        colorMajor2Selected: "#be8e00",
+        colorDigits: "#cccccc",
+    };
+    let timeline1 = new Timeline(options1);
+    let canvas1 = document.getElementById("mytimeline1");
+    timeline1.setCanvas(canvas1);
+    <!-- [timestampMsec, durationMsec] -->
+    time = new Date().getTime();
+
+    // Timeline 1
+    let major1RecordsTl1 = [
+      new TimeRecord(time - 5000, 1000, new EventRecord(0)),
+      new TimeRecord(time - 30000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 300000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 1800000, 100000, new EventRecord(0)),
+      new TimeRecord(time - 3600000, 70000, new EventRecord(0)),
+      new TimeRecord(time - 360000000, 150000, new EventRecord(0)),
+      new TimeRecord(time - 500000000, 1500000, new EventRecord(0)),
+    ];
+    let major2RecordsTl1 = [
+      new TimeRecord(time - 500, 500, new EventRecord(0)),
+      // new TimeRecord(time - 30000, 20000, new EventRecord(0)),
+    ];
+    let backgroundRecordsTl1 = [
+      new TimeRecord(time - 500000, 500000, new EventRecord(0)),
+      new TimeRecord(time - 1000000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 2500000, 1000000, new EventRecord(0)),
+    ];
+    timeline1.setMajor1Records(0, major1RecordsTl1);
+    timeline1.setMajor2Records(0, major2RecordsTl1);
+    timeline1.setBackgroundRecords(0, backgroundRecordsTl1);
+
+    // Timeline 2
+    let major1RecordsTl2 = [
+      new TimeRecord(time - 2000, 2000, new EventRecord(0)),
+      new TimeRecord(time - 20000, 10000, new EventRecord(0)),
+      new TimeRecord(time - 40000, 10000, new EventRecord(0)),
+      new TimeRecord(time - 100000, 50000, new EventRecord(0)),
+      new TimeRecord(time - 1800000, 50000, new EventRecord(0)),
+    ];
+    let major2RecordsTl2 = [
+      new TimeRecord(time - 1500, 1500, new EventRecord(0)),
+      new TimeRecord(time - 20000, 1000, new EventRecord(0)),
+    ];
+    let backgroundRecordsTl2 = [
+      new TimeRecord(time - 200000, 200000, new EventRecord(0)),
+      new TimeRecord(time - 700000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 2000000, 500000, new EventRecord(0)),
+    ];
+    timeline1.setMajor1Records(1, major1RecordsTl2);
+    timeline1.setMajor2Records(1, major2RecordsTl2);
+    timeline1.setBackgroundRecords(1, backgroundRecordsTl2);
+
+    // Timeline with custom colors
+    const customMajorColor = "#BCAAA4";
+    const customBackgroundColor = "#4E342E";
+    // Timeline 3
+    let major1RecordsTl3 = [
+      new TimeRecord(time - 9000, 1000, new EventRecord(0), customMajorColor),
+      new TimeRecord(time - 20000, 2000, new EventRecord(0), customMajorColor),
+      new TimeRecord(time - 50000, 20000, new EventRecord(0), customMajorColor),
+      new TimeRecord(time - 100000, 20000, new EventRecord(0), customMajorColor),
+      new TimeRecord(time - 400000, 50000, new EventRecord(0), customMajorColor),
+      new TimeRecord(time - 1400000, 100000, new EventRecord(0), customMajorColor),
+    ];
+    let major2RecordsTl3 = [
+      // new TimeRecord(time - 500, 500, new EventRecord(0)),
+    ];
+    let backgroundRecordsTl3 = [
+      new TimeRecord(time - 200000, 200000, new EventRecord(0), customBackgroundColor),
+      new TimeRecord(time - 500000, 250000, new EventRecord(0), customBackgroundColor),
+      new TimeRecord(time - 500000, 250000, new EventRecord(0), customBackgroundColor),
+      new TimeRecord(time - 700000, 150000, new EventRecord(0), customBackgroundColor),
+      new TimeRecord(time - 1500000, 400000, new EventRecord(0), customBackgroundColor),
+    ];
+    timeline1.setMajor1Records(2, major1RecordsTl3);
+    timeline1.setMajor2Records(2, major2RecordsTl3);
+    timeline1.setBackgroundRecords(2, backgroundRecordsTl3);
+
+    let requestMoreBackgroundDataCalled = false;
+    let requestMoreMajor1DataCalled = false;
+    function requestMoreBackgroundData(timelineIndex) {
+      console.log("requestMoreBackgroundData(timelineIndex=" + timelineIndex + ")");
+      if (!requestMoreBackgroundDataCalled) {
+        backgroundRecordsTl1.push(new TimeRecord(time - 3000000, 1000000, new EventRecord(0)));
+        backgroundRecordsTl1.push(new TimeRecord(time - 4500000, 1000000, new EventRecord(0)));
+        backgroundRecordsTl1.push(new TimeRecord(time - 9000000, 5000000, new EventRecord(0)));
+        requestMoreBackgroundDataCalled = true;
+        timeline1.draw();
+      }
+    }
+    function requestMoreMajor1DataCallback(timelineIndex) {
+      console.log("requestMoreMajor1DataCallback(timelineIndex=" + timelineIndex + ")");
+      if (!requestMoreMajor1DataCalled) {
+        major1RecordsTl1.push(new TimeRecord(time - 400000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 600000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 800000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 1000000000, 150000, new EventRecord(0)));
+        major1RecordsTl1.push(new TimeRecord(time - 1200000000, 150000, new EventRecord(0)));
+        requestMoreMajor1DataCalled = true;
+        timeline1.draw();
+      }
+    }
+    let liveTimerId = null;
+    let liveTimerStopped = 0;
+    function timeSelectedCallback(timelineIndex, timestampMsec, record) {
+      console.log("timeSelectedCallback(timelineIndex=" + timelineIndex + ", timestampMsec=" + timestampMsec + ")");
+    }
+    function liveCallback(timelineIndex, started) {
+      // console.log("liveCallback(timelineIndex=" + timelineIndex + ", started=" + started + ")");
+      if (started && liveTimerId == null) {
+        console.log("Starting live timer...");
+        liveTimerId = setInterval(function() {
+          timeline1.setCurrentWithAnimation(new Date().getTime());
+          timeline1.draw();
+        }, 500);
+      } else if (!started) {
+        console.log("Stopping live timer...");
+        clearInterval(liveTimerId);
+        liveTimerId = null;
+      }
+    }
+    timeline1.setRequestMoreBackgroundDataCallback(requestMoreBackgroundData);
+    timeline1.setRequestMoreMajor1DataCallback(requestMoreMajor1DataCallback);
+    timeline1.setTimeSelectedCallback(timeSelectedCallback);
+    timeline1.setLiveCallback(liveCallback);
+
+
+    let options2 = {
+        timelines: 1,
+        timelineNames: ["Cam 3"],
+        colorTimeBackground: "#c62828",
+        colorTimeText: "#ffffff",
+        colorTimelineSelected: "#00838F",
+        colorBackground: "#F5F5F5",
+        colorRectNoData: "#EEEEEE",
+        colorRectBackground: "#BDBDBD",
+        colorRectMajor1: "#424242",
+        colorRectMajor2: "#6A1B9A",
+        colorMajor1Selected: "#ffca28",
+        colorMajor2Selected: "#be8e00",
+        colorDigits: "#616161",
+    };
+    let timeline2 = new Timeline(options2);
+    let canvas2 = document.getElementById("mytimeline2");
+    timeline2.setCanvas(canvas2);
+    <!-- [timestampMsec, durationMsec] -->
+    time = new Date().getTime();
+
+    // Timeline 1
+    let major1RecordsTl4 = [
+      new TimeRecord(time - 5000, 1000, new EventRecord(0)),
+      new TimeRecord(time - 30000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 300000, 20000, new EventRecord(0)),
+      new TimeRecord(time - 1800000, 100000, new EventRecord(0)),
+      new TimeRecord(time - 3600000, 70000, new EventRecord(0)),
+      new TimeRecord(time - 360000000, 150000, new EventRecord(0)),
+      new TimeRecord(time - 500000000, 1500000, new EventRecord(0)),
+    ];
+    let major2RecordsTl4 = [
+      new TimeRecord(time - 500, 500, new EventRecord(0)),
+      // new TimeRecord(time - 30000, 20000, new EventRecord(0)),
+    ];
+    let backgroundRecordsTl4 = [
+      new TimeRecord(time - 500000, 500000, new EventRecord(0)),
+      new TimeRecord(time - 1000000, 250000, new EventRecord(0)),
+      new TimeRecord(time - 2500000, 1000000, new EventRecord(0)),
+    ];
+    timeline2.setMajor1Records(0, major1RecordsTl4);
+    timeline2.setMajor2Records(0, major2RecordsTl4);
+    timeline2.setBackgroundRecords(0, backgroundRecordsTl4);
+
+    resizeCanvas();
+
+    // Events
+    window.addEventListener('resize', resizeCanvas, false);
+    let firstTouch = 0;
+    canvas1.addEventListener('touchstart', function(event) {
+      if (event.targetTouches.length == 1) {
+        firstTouch = event.targetTouches[0].pageX;
+      }
+    }, false);
+
+    canvas1.addEventListener('touchmove', function(event) {
+      if (event.targetTouches.length == 1) {
+        let touchDelta = event.targetTouches[0].pageX - firstTouch;
+        timeline1.onScroll(touchDelta);
+        firstTouch = event.targetTouches[0].pageX;
+      }
+    }, false);
+
+    canvas1.onmouseup = mouseUp;
+    canvas1.onmousemove = mouseMove;
+
+
+  </script>
 
 </body>
 </html>
