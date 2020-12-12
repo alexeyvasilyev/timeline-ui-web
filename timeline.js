@@ -719,7 +719,8 @@ Timeline.prototype.drawRuler = function(context) {
               // Draw every 12 hours
               if (!this.drawHoursMinutes(context, msecInPixels, INTERVAL_HOUR_12))
                 // Draw every 24 hours
-                this.drawHoursMinutes(context, msecInPixels, INTERVAL_DAY_1);
+                if (!this.drawHoursMinutes(context, msecInPixels, INTERVAL_DAY_1))
+                  this.drawHoursMinutes(context, msecInPixels, INTERVAL_DAY_7);
 
   // Draw ruler scale, e.g. "5 days", "30 min"
   var textScale = this.getRulerScale();
@@ -931,4 +932,4 @@ Timeline.prototype.draw = function() {
 }
 
 // export { Timeline, TimeRecord };
-// export { INTERVAL_MIN_1, INTERVAL_MIN_5, INTERVAL_MIN_15, INTERVAL_MIN_30, INTERVAL_HOUR_1, INTERVAL_HOUR_6, INTERVAL_HOUR_12, INTERVAL_DAY_1, INTERVAL_DAY_7 };
+// export { INTERVAL_MIN_1, INTERVAL_MIN_5, INTERVAL_MIN_15, INTERVAL_MIN_30, INTERVAL_HOUR_1, INTERVAL_HOUR_6, INTERVAL_HOUR_12, INTERVAL_DAY_1, INTERVAL_DAY_7, INTERVAL_DAY_30 };
