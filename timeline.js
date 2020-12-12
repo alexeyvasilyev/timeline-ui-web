@@ -25,6 +25,7 @@ const INTERVAL_HOUR_6  =   6 * 60 * 60 * 1000; //  6 hours
 const INTERVAL_HOUR_12 =  12 * 60 * 60 * 1000; // 12 hours
 const INTERVAL_DAY_1   =  24 * 60 * 60 * 1000; //  1 day
 const INTERVAL_DAY_7   = 168 * 60 * 60 * 1000; //  7 days
+const INTERVAL_DAY_30  = 720 * 60 * 60 * 1000; // 30 days
 const OFFSET_TOP_BOTTOM = 25;
 
 /**
@@ -327,7 +328,9 @@ Timeline.prototype.getInterval = function() {
 
 Timeline.prototype.increaseInterval = function() {
   // console.log("increaseInterval()");
-  if (this.intervalMsec > INTERVAL_DAY_1 - 1) {
+  if (this.intervalMsec > INTERVAL_DAY_7 - 1) {
+    this.setIntervalWithAnimation(INTERVAL_DAY_30);
+  } else if (this.intervalMsec > INTERVAL_DAY_1 - 1) {
     this.setIntervalWithAnimation(INTERVAL_DAY_7);
   } else if (this.intervalMsec  > INTERVAL_HOUR_12 - 1) {
     this.setIntervalWithAnimation(INTERVAL_DAY_1);
@@ -350,7 +353,9 @@ Timeline.prototype.increaseInterval = function() {
 
 Timeline.prototype.decreaseInterval = function() {
   // console.log("decreaseInterval()");
-  if (this.intervalMsec > INTERVAL_DAY_7 - 1) {
+  if (this.intervalMsec > INTERVAL_DAY_30 - 1) {
+    this.setIntervalWithAnimation(INTERVAL_DAY_7);
+  } else if (this.intervalMsec > INTERVAL_DAY_7 - 1) {
     this.setIntervalWithAnimation(INTERVAL_DAY_1);
   } else if (this.intervalMsec > INTERVAL_DAY_1 - 1) {
     this.setIntervalWithAnimation(INTERVAL_HOUR_12);
@@ -574,7 +579,9 @@ Timeline.prototype.drawCurrentTimeDate = function(context) {
 }
 
 Timeline.prototype.getRulerScale = function() {
-    if (this.intervalMsec > INTERVAL_DAY_7 - 1) {
+    if (this.intervalMsec > INTERVAL_DAY_30 - 1) {
+        return "30 days";
+    } else if (this.intervalMsec > INTERVAL_DAY_7 - 1) {
         return "7 days";
     }  else if (this.intervalMsec > INTERVAL_DAY_1 - 1) {
         return "1 day";
